@@ -310,7 +310,6 @@ class CodeWriter:
             "argument":"ARG",
             "this":"THIS",
             "that":"THAT",
-            "static":"",
             "pointer":""
         }
         res = ""
@@ -342,6 +341,19 @@ class CodeWriter:
                 @SP
                 M=M+1
                 """.format(command,segment,index)
+            elif segment == "static":
+                res = \
+                """
+                // {0} {1} {3}.{2}
+                @{3}.{2} // change to static
+                D=M // get target value X
+                @SP
+                A=M
+                M=D // change value to  X
+                //forward stack pointer
+                @SP
+                M=M+1
+                """.format(command,segment,index,"Foo")
             else:
                 symbol = symbols.get(segment)
                 res = \
@@ -378,6 +390,21 @@ class CodeWriter:
                 @SP
                 M=M-1
                 """.format(command,segment,index)
+            elif segment == "static":
+                res = \
+                """
+                // {0} {1} {3}.{2}
+                @SP
+                A=M-1
+                D=M // get last value on stack and pop it
+
+                @{3}.{2} // goto temp address
+                M=D // change value to poped value
+
+                //backward stack pointer
+                @SP
+                M=M-1
+                """.format(command,segment,index,"Foo")
             
             else:
                 res = \
