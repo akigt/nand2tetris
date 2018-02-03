@@ -72,7 +72,6 @@ class Parser:
 
 
 class CodeWriter:
-   
     def __init__(self, file_name):
         self.f = open(file_name, 'w')
         self.labal_counter = 0
@@ -309,8 +308,7 @@ class CodeWriter:
             "local":"LCL",
             "argument":"ARG",
             "this":"THIS",
-            "that":"THAT",
-            "pointer":""
+            "that":"THAT"
         }
         res = ""
         if command == "C_PUSH":
@@ -329,6 +327,20 @@ class CodeWriter:
                 """.format(command,segment,index)
             elif segment == "temp":
                 index = int(index) + 5 # 5 is temp base address
+                res = \
+                """
+                // {0} {1} RAM[{2}]
+                @{2} // change temp
+                D=M // get target value X
+                @SP
+                A=M
+                M=D // change value to  X
+                //forward stack pointer
+                @SP
+                M=M+1
+                """.format(command,segment,index)
+            elif segment == "pointer":
+                index = int(index) + 3 # 3 is pointer's base address
                 res = \
                 """
                 // {0} {1} RAM[{2}]
@@ -390,6 +402,22 @@ class CodeWriter:
                 @SP
                 M=M-1
                 """.format(command,segment,index)
+            elif segment == "pointer":
+                index = int(index) + 3 # 3 is pointer's base address
+                res = \
+                """
+                // {0} {1} RAM[{2}]
+                @SP
+                A=M-1
+                D=M // get last value on stack and pop it
+
+                @{2} // goto temp address
+                M=D // change value to poped value
+
+                //backward stack pointer
+                @SP
+                M=M-1
+                """.format(command,segment,index)
             elif segment == "static":
                 res = \
                 """
@@ -405,7 +433,6 @@ class CodeWriter:
                 @SP
                 M=M-1
                 """.format(command,segment,index,"Foo")
-            
             else:
                 res = \
                 """
@@ -459,6 +486,19 @@ class CodeWriter:
             self.f = None
 
 
+# clean output code by removing unnecessary tabs
+def asm_cleaner(file_name):
+    output = []
+    with open(file_name,"r") as f:
+        for line in f:
+            output.append(line.lstrip())
+    
+    # rewrite file
+    with open(file_name,"w") as f:
+        for line in output:
+            f.write(line)
+
+
 
 if __name__ == '__main__':
     import sys
@@ -473,7 +513,8 @@ if __name__ == '__main__':
     vmfile = args[1]
 
     p = Parser(vmfile)
-    cw = CodeWriter(vmfile[:-2] + "asm")
+    output_file = vmfile[:-2] + "asm"
+    cw = CodeWriter(output_file)
     
     while p.hasMoreCommands():
         if p.commandType() == "C_ARITHMETIC":
@@ -488,3 +529,5 @@ if __name__ == '__main__':
         p.advance()
 
     cw.close()
+
+    asm_cleaner(output_file)
