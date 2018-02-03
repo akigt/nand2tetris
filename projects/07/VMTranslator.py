@@ -298,12 +298,21 @@ class CodeWriter:
             """.format(command)
 
         self.labal_counter += 1
+        # res = "yattaze"
         self.f.write(res)
         
 
     def writePushPop(self,command,segment,index):
         # res = "{0} {1} {2}\n"\
         # .format(command,segment,index)
+        symbols = {
+            "local":"LCL",
+            "argument":"ARG",
+            "this":"THIS",
+            "that":"THAT",
+            "static":"",
+            "pointer":""
+        }
         res = ""
         if command == "C_PUSH":
             if segment == "constant":
@@ -315,10 +324,89 @@ class CodeWriter:
                 @SP
                 A=M
                 M=D
-                //forwartd stack pointer
+                //forward stack pointer
                 @SP
                 M=M+1
                 """.format(command,segment,index)
+            elif segment == "temp":
+                index = int(index) + 5 # 5 is temp base address
+                res = \
+                """
+                // {0} {1} RAM[{2}]
+                @{2} // change temp
+                D=M // get target value X
+                @SP
+                A=M
+                M=D // change value to  X
+                //forward stack pointer
+                @SP
+                M=M+1
+                """.format(command,segment,index)
+            else:
+                symbol = symbols.get(segment)
+                res = \
+                """
+                // {0} {1} {2}
+                @{2} // get index
+                D=A
+                @{1} // get segment base address
+                A=M+D // get target address(base + index)
+                D=M // get target value X
+                @SP // get stack pointer
+                A=M // change to stack point
+                M=D // change value to X
+                //forward stack pointer
+                @SP
+                M=M+1
+                """.format(command,symbol,index)
+        
+        if command == "C_POP":
+            symbol = symbols.get(segment)
+            if segment == "temp":
+                index = int(index) + 5 # 5 is temp base address
+                res = \
+                """
+                // {0} {1} RAM[{2}]
+                @SP
+                A=M-1
+                D=M // get last value on stack and pop it
+
+                @{2} // goto temp address
+                M=D // change value to poped value
+
+                //backward stack pointer
+                @SP
+                M=M-1
+                """.format(command,segment,index)
+            
+            else:
+                res = \
+                """
+                // {0} {1} {2}
+
+                @{2} // get index
+                D=A
+                @{1} // get segment base address
+                M=M+D //temporally change base address to target address(base + index)
+
+                @SP
+                A=M-1
+                D=M // get last value on stack and pop it
+
+                @{1}
+                A=M // goto target address
+                M=D // change value to poped value
+
+                // reset segment base address
+                @{2} // get index
+                D=A
+                @{1}
+                M=M-D // reset segment base addres here by subtracting index
+
+                //backward stack pointer
+                @SP
+                M=M-1
+                """.format(command,symbol,index)
         
         # if command == "C_PUSH":
         #     res = \
@@ -336,7 +424,7 @@ class CodeWriter:
 
 
         self.f.write(res)
-        return command,segment,index
+        # return command,segment,index
 
     def close(self):
         if self.f:
@@ -349,15 +437,13 @@ if __name__ == '__main__':
     import sys
  
     args = sys.argv
-    # if len(args) == 2:
-    #     print('OK')
+
     if len(args) <= 1:
         print('not enough arguments error')
     elif len(args) >= 3:
         print("too many args! error")
 
     vmfile = args[1]
-    # print(vmfile)
 
     p = Parser(vmfile)
     cw = CodeWriter(vmfile[:-2] + "asm")
