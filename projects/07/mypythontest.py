@@ -91,10 +91,64 @@ class CodeWriter:
         self.f = open(new_file_name, 'w')
     
     def writeArithmetic(self,command):
-        self.f.write(command)
-        return command
+        res = ""
+
+        if command == "add":
+            res = \
+            """
+            //{0}
+            @2
+            D=A
+            @SP
+            A=M-D //get back 2 point
+            D=M // get first arg
+            A=A+1 // get back 1 point
+            D=D+M // get second arg
+            A=A-1 // get back 2 point
+            M=D // put result on back 2 point
+            D=A+1
+            @SP // stack pointer
+            M=D // set stack pointer two back 1
+            """.format(command)
+        
+        self.f.write(res)
+        
 
     def writePushPop(self,command,segment,index):
+        # res = "{0} {1} {2}\n"\
+        # .format(command,segment,index)
+        res = ""
+        if command == "C_PUSH":
+            if segment == "constant":
+                res = \
+                """
+                // {0} {1} {2}
+                @{2} // get constant
+                D=A
+                @SP
+                A=M
+                M=D
+                //forwartd stack pointer
+                @SP
+                M=M+1
+                """.format(command,segment,index)
+        
+        # if command == "C_PUSH":
+        #     res = \
+        #     """
+        #     // {0} {1} {2}
+        #     @{2}
+
+        #     @SP
+        #     A=M
+        #     M=D
+        #     //forwartd stack pointer
+        #     @SP
+        #     M=M+1
+        #     """.format(command,segment,index)
+
+
+        self.f.write(res)
         return command,segment,index
 
     def close(self):
@@ -122,16 +176,21 @@ if __name__ == '__main__':
     # print(vmfile)
 
     p = Parser(vmfile)
-    cw = CodeWriter("demo_output.asm")
-    cw.setFileName("yattaze")
-    print(cw.writeArithmetic("testara4432ith"))
-    print(cw.writePushPop("testar","aa","aaa"))
+    cw = CodeWriter(vmfile[:-2] + "asm")
+    # cw.setFileName("yattaze")
+    # print(cw.writeArithmetic("testara4432ith"))
+    # print(cw.writePushPop("testar","aa","aaa"))
     
-    # while p.hasMoreCommands():
-    #     print(p.commandType())
-    #     p.commandType()
-    #     p.arg1())
-    #     p.arg2())
-    #     p.advance()
+    while p.hasMoreCommands():
+        if p.commandType() == "C_ARITHMETIC":
+            command = p.arg1()
+            cw.writeArithmetic(command)
+        if p.commandType() in ["C_POP","C_PUSH"]:
+            command = p.commandType()
+            segment = p.arg1()
+            index = p.arg2()
+            cw.writePushPop(command,segment,index)
+
+        p.advance()
 
     cw.close()
