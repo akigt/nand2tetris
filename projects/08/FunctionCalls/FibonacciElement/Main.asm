@@ -1,9 +1,3 @@
-// start initializing
-@256
-D=A
-@SP
-M=D
-// end initializing
 // C_PUSH ARG 0
 @0 // get index
 D=A
@@ -163,17 +157,3 @@ M=D // put result on back 2 point
 D=A+1
 @SP // stack pointer
 M=D // set stack pointer two back 1
-// C_PUSH constant 4
-@4 // get constant
-D=A
-@SP
-A=M
-M=D
-//forward stack pointer
-@SP
-M=M+1
-// Label WHILE
-(WHILE)
-// goto WHILE
-@WHILE
-0;JMP // goto lable (WHILE)

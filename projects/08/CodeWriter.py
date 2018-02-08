@@ -7,6 +7,22 @@ class CodeWriter:
         # get current processing file name
         self.file_name = file_name
     
+    def writeInit(self):
+        res = \
+        """
+        // start initializing
+        @256
+        D=A
+        @SP
+        M=D
+        // end initializing
+        """
+
+        self.f.write(res) # set stack pointer
+        self.writeCall("Sys.init",0) # call sys init 
+
+        return 0
+    
     def writeArithmetic(self,command):
         res = ""
 
@@ -447,6 +463,16 @@ class CodeWriter:
         """.format(label)
 
         self.f.write(res)
+        return 0
+    
+    def writeFunction(self,function_name,num_args):
+        return 0
+    
+    def writeCall(self,function_name,num_args):
+        print(function_name)
+        return 0
+    
+    def writeReturn(self):
         return 0
 
 

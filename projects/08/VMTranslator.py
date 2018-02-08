@@ -42,6 +42,9 @@ if __name__ == '__main__':
     print(output_file)
     cw = CodeWriter(output_file)
 
+    if os.path.isdir(args[1]):
+        cw.writeInit()
+
     for f in source: #get all vm_files from source dir or file
         
         cw.setFileName(f)
