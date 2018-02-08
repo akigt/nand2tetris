@@ -421,21 +421,30 @@ class CodeWriter:
         return 0
     
     def writeGoto(self,label):
-        # print(label)
+        res = \
+        """
+
+        // goto {0}
+        @{0}
+        0;JMP // goto lable ({0})
+
+        """.format(label)
+
+        self.f.write(res)
         return 0
 
     def writeIf(self,label):
-        # print(label)
+
         res = \
         """
 
         // If-goto {0}
         @SP
         M=M-1 // get 1 step back stack pointer 
-        A=M
+        A=M // go to top of stack
         D=M //get a value from top of the stack
         @{0}
-        D;JNE // if D>0 then goto lable ({0})
+        D;JNE // if D!=0 then goto lable ({0})
 
         """.format(label)
 
