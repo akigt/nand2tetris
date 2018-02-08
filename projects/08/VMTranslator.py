@@ -1,4 +1,5 @@
 import os 
+import sys
 from Parser import Parser
 from CodeWriter import CodeWriter
 
@@ -17,8 +18,8 @@ def asm_cleaner(file_name):
 
 
 if __name__ == '__main__':
-    import sys
- 
+    
+    
     args = sys.argv
 
     if len(args) <= 1:
@@ -27,6 +28,7 @@ if __name__ == '__main__':
         print("too many args! error")
 
     vmfile = args[1]
+    # print(os.path.isdir(args[1]))  #is dir?
     p = Parser(vmfile)
     output_file = vmfile[:-2] + "asm"
     cw = CodeWriter(output_file)
@@ -40,9 +42,15 @@ if __name__ == '__main__':
             segment = p.arg1()
             index = p.arg2()
             cw.writePushPop(command,segment,index)
+        if p.commandType() == "C_LABEL":
+            cw.writeLabel(p.arg1())
+        if p.commandType() == "C_GOTO":
+            cw.writeGoto(p.arg1())
+        if p.commandType() == "C_IF":
+            cw.writeIf(p.arg1())
 
         p.advance()
 
     cw.close()
 
-    asm_cleaner(output_file)
+    # asm_cleaner(output_file)
