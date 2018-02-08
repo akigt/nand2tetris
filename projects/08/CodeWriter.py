@@ -3,11 +3,9 @@ class CodeWriter:
         self.f = open(file_name, 'w')
         self.labal_counter = 0
 
-    def setFileName(self,new_file_name):
-        if self.f:
-            self.f.close()
-            self.f = None
-        self.f = open(new_file_name, 'w')
+    def setFileName(self,file_name):
+        # get current processing file name
+        self.file_name = file_name
     
     def writeArithmetic(self,command):
         res = ""

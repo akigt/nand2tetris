@@ -34,7 +34,7 @@ if __name__ == '__main__':
         vm_files = filter(lambda f: f[-3:] == ".vm",files)
         vm_files_with_path = list(map(lambda f: os.path.join(args[1],f),vm_files))
         source = list(vm_files_with_path)
-        output_file = args[1] + ".asm"
+        output_file = args[1] + ".asm" if args[1][-1] != "/" else args[1][:-1] + ".asm"
     else:
         source = [args[1]]
         output_file = args[1][:-2] + "asm"
@@ -43,6 +43,9 @@ if __name__ == '__main__':
     cw = CodeWriter(output_file)
 
     for f in source: #get all vm_files from source dir or file
+        
+        cw.setFileName(f)
+        print("now parsing..." + cw.file_name)
         p = Parser(f)
 
         while p.hasMoreCommands():
