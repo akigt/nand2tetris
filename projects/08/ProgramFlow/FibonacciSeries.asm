@@ -1,3 +1,9 @@
+// start initializing
+@256
+D=A
+@SP
+M=D
+// end initializing
 // C_PUSH ARG 1
 @1 // get index
 D=A

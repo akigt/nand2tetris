@@ -2,6 +2,8 @@ class CodeWriter:
     def __init__(self, file_name):
         self.f = open(file_name, 'w')
         self.labal_counter = 0
+        self.return_counter = 0
+        self.file_name = "Main"
 
     def setFileName(self,file_name):
         # get current processing file name
@@ -306,7 +308,7 @@ class CodeWriter:
                 //forward stack pointer
                 @SP
                 M=M+1
-                """.format(command,segment,index,"Foo")
+                """.format(command,segment,index,self.file_name)
             else:
                 symbol = symbols.get(segment)
                 res = \
@@ -373,7 +375,7 @@ class CodeWriter:
                 //backward stack pointer
                 @SP
                 M=M-1
-                """.format(command,segment,index,"Foo")
+                """.format(command,segment,index,self.file_name)
             else:
                 res = \
                 """
@@ -466,13 +468,190 @@ class CodeWriter:
         return 0
     
     def writeFunction(self,function_name,num_args):
+        res = \
+        """
+        // define function {0}
+        ({0})
+        """.format(function_name)
+
+        #function repeat n times to local to 0
+        for i in range(0,int(num_args)):
+            res += \
+            """
+            @SP
+            A=M
+            M=0
+            @SP
+            M=M+1
+            """.format(num_args)
+
+        self.f.write(res)
         return 0
     
     def writeCall(self,function_name,num_args):
-        print(function_name)
+        # print(function_name)
+        res = \
+        """
+        @{0}$ret.{1}  // return addree
+        D=A
+        @SP
+        A=M
+        M=D
+        @SP
+        M=M+1 // forward stack pointer
+        """.format(self.file_name,self.return_counter)
+
+        res += \
+        """
+        @LCL // save LCL
+        D=M
+        @SP
+        A=M
+        M=D
+        @SP
+        M=M+1 // forward stack pointer
+
+        @ARG // save ARG
+        D=M
+        @SP
+        A=M
+        M=D
+        @SP
+        M=M+1 // forward stack pointer
+
+        @THIS // save THIS
+        D=M
+        @SP
+        A=M
+        M=D
+        @SP
+        M=M+1 // forward stack pointer
+
+        @THAT // save THAT
+        D=M
+        @SP
+        A=M
+        M=D
+        @SP
+        M=M+1 // forward stack pointer
+
+        //change new ARG point
+        @SP
+        D=M
+        @ARG // ARG = SP
+        M=D
+        @5
+        D=A
+        @ARG // ARG = sp - 5
+        M=M-D
+        @{1}
+        D=A
+        @ARG
+        M=M-D
+        
+        // change LCL to SP
+        @SP
+        D=M
+        @LCL
+        M=D
+        
+        @{0} // finally call the function 
+        0;JMP
+        """.format(function_name,num_args)
+
+        # add return address declaration 
+        res += \
+        """
+        ({0}$ret.{1})
+        """.format(self.file_name,self.return_counter)
+
+        self.return_counter += 1 # move ret_counter to next step
+
+        self.f.write(res)
         return 0
     
     def writeReturn(self):
+        res = \
+        """
+        // let's return!!!
+        @LCL 
+        D=M // endframe
+        @endFrame // endFrame
+        M=D
+
+        @5
+        D=A
+        @endFrame
+        D=M-D // endframe - 5
+        A=D
+        D=M
+        @returnAddress // returnAddress = endfram - 5
+        M=D
+
+        // *ARG = POP()
+        @SP
+        D=M-1
+        A=D
+        D=M // get top value on the stack
+        @ARG
+        A=M
+        M=D // change arg 0 value to stack top value
+
+        // sp = ARG + 1
+        @ARG
+        D=M+1
+        @SP
+        M=D
+
+        // reset THAT
+        @1
+        D=A
+        @endFrame
+        D=M-D // endframe - 1
+        A=D
+        D=M
+        @THAT // THAT = endfram - 1
+        M=D
+
+        // reset THIS
+        @2
+        D=A
+        @endFrame
+        D=M-D // endframe - 2
+        A=D
+        D=M
+        @THIS // THIS = endfram - 2
+        M=D
+
+        // reset ARG
+        @3
+        D=A
+        @endFrame
+        D=M-D // endframe - 3
+        A=D
+        D=M
+        @ARG // ARG = endfram - 3
+        M=D
+
+        // reset LCL
+        @4
+        D=A
+        @endFrame
+        D=M-D // endframe - 4
+        A=D
+        D=M
+        @LCL // LCL = endfram - 4
+        M=D
+
+        // goto return address
+        @returnAddress
+        A=M
+        0;JMP
+
+        """
+        #arg pop 0 , and sp arg + 1
+
+        self.f.write(res)
         return 0
 
 

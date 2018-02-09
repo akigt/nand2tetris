@@ -33,13 +33,17 @@ if __name__ == '__main__':
         files = os.listdir(args[1])
         vm_files = filter(lambda f: f[-3:] == ".vm",files)
         vm_files_with_path = list(map(lambda f: os.path.join(args[1],f),vm_files))
+        
         source = list(vm_files_with_path)
-        output_file = args[1] + ".asm" if args[1][-1] != "/" else args[1][:-1] + ".asm"
+
+        dir_name = os.path.relpath(args[1])
+        dir_tail = os.path.split(dir_name)[1]
+        output_file = os.path.join(dir_name,dir_tail + ".asm")
     else:
         source = [args[1]]
         output_file = args[1][:-2] + "asm"
 
-    print(output_file)
+    print("output:  " + output_file)
     cw = CodeWriter(output_file)
 
     if os.path.isdir(args[1]):
@@ -47,8 +51,8 @@ if __name__ == '__main__':
 
     for f in source: #get all vm_files from source dir or file
         
-        cw.setFileName(f)
-        print("now parsing..." + cw.file_name)
+        cw.setFileName(os.path.split(f)[1])
+        print("now parsing...  " + cw.file_name)
         p = Parser(f)
 
         while p.hasMoreCommands():
@@ -66,9 +70,16 @@ if __name__ == '__main__':
                 cw.writeGoto(p.arg1())
             if p.commandType() == "C_IF":
                 cw.writeIf(p.arg1())
+            if p.commandType() == "C_FUNCTION":
+                cw.writeFunction(p.arg1(),p.arg2())
+            if p.commandType() == "C_CALL":
+                cw.writeCall(p.arg1(),p.arg2())
+            if p.commandType() == "C_RETURN":
+                cw.writeReturn()
+
             #let's go to next step
             p.advance()
 
     cw.close()
 
-    asm_cleaner(output_file)
+    asm_cleaner(output_file) #コード整形用

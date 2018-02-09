@@ -183,10 +183,10 @@
         // If-goto LOOP_START
         @SP
         M=M-1 // get 1 step back stack pointer 
-        A=M
+        A=M // go to top of stack
         D=M //get a value from top of the stack
         @LOOP_START
-        D;JNE // if D>0 then goto lable (LOOP_START)
+        D;JNE // if D!=0 then goto lable (LOOP_START)
 
         
                 // C_PUSH LCL 0
