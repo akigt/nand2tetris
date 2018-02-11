@@ -200,11 +200,11 @@ class CompilationEngine:
 
         self.output.write(self.input[self.idx] + "\n") # )
         self.idx += 1
-
+        
+        #subroutine body => var* statements
+        self.output.write("<subroutineBody>\n")
         self.output.write(self.input[self.idx] + "\n") # {
         self.idx += 1
-
-        #subroutine body => var* statements
         #vardec
         while getValue(self.input[self.idx]) == "var":
             self.CompileVarDec()
@@ -212,6 +212,7 @@ class CompilationEngine:
         self.CompileStatements()
 
         self.output.write(self.input[self.idx] + "\n") # }
+        self.output.write("</subroutineBody>\n")
         self.idx += 1
         self.output.write("</subroutineDec>\n")
 
@@ -223,18 +224,19 @@ class CompilationEngine:
             return
         self.output.write("<parameterList>\n")
 
-        self.output.write(self.input[self.idx] + "\n") # type
-        self.idx += 1
-        self.output.write(self.input[self.idx] + "\n") # varName
-        self.idx += 1
-        while getValue(self.input[self.idx]) == ",":
-            self.output.write(self.input[self.idx] + "\n") # ,
-            self.idx += 1
+        if getValue(self.input[self.idx]) != ")":
             self.output.write(self.input[self.idx] + "\n") # type
             self.idx += 1
             self.output.write(self.input[self.idx] + "\n") # varName
             self.idx += 1
-        
+            while getValue(self.input[self.idx]) == ",":
+                self.output.write(self.input[self.idx] + "\n") # ,
+                self.idx += 1
+                self.output.write(self.input[self.idx] + "\n") # type
+                self.idx += 1
+                self.output.write(self.input[self.idx] + "\n") # varName
+                self.idx += 1
+
         self.output.write("</parameterList>\n")
         return 0
     
@@ -263,16 +265,17 @@ class CompilationEngine:
         if not self.check():
             return
         self.output.write("<statements>\n")
-        if getValue(self.input[self.idx]) == "let":
-            self.CompileLet()
-        elif getValue(self.input[self.idx]) == "if":
-            self.CompileIf()
-        elif getValue(self.input[self.idx]) == "while":
-            self.CompileWhile()
-        elif getValue(self.input[self.idx]) == "do":
-            self.CompileDo()
-        elif getValue(self.input[self.idx]) == "return":
-            self.CompileReturn()
+        while getValue(self.input[self.idx]) in ["let","if","while","do","return"]:
+            if getValue(self.input[self.idx]) == "let":
+                self.CompileLet()
+            elif getValue(self.input[self.idx]) == "if":
+                self.CompileIf()
+            elif getValue(self.input[self.idx]) == "while":
+                self.CompileWhile()
+            elif getValue(self.input[self.idx]) == "do":
+                self.CompileDo()
+            elif getValue(self.input[self.idx]) == "return":
+                self.CompileReturn()
 
         self.output.write("</statements>\n")
 
@@ -286,6 +289,31 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # do
         self.idx += 1
 
+        #subroutine call
+        self.output.write(self.input[self.idx] + "\n") # subroutine name or classname
+        self.idx += 1 
+
+        if getValue(self.input[self.idx]) == "(":
+            self.output.write(self.input[self.idx] + "\n") # (
+            self.idx += 1
+            #expressionList
+            self.CompaileExpressionList()
+            self.output.write(self.input[self.idx] + "\n") # )
+            self.idx += 1
+        elif getValue(self.input[self.idx]) == ".":
+            self.output.write(self.input[self.idx] + "\n") # .
+            self.idx += 1
+            self.output.write(self.input[self.idx] + "\n") # subroutine name
+            self.idx += 1
+            self.output.write(self.input[self.idx] + "\n") # (
+            self.idx += 1
+            #expressionList
+            self.CompaileExpressionList()
+            self.output.write(self.input[self.idx] + "\n") # )
+            self.idx += 1
+
+        self.output.write(self.input[self.idx] + "\n") # ;
+        self.idx += 1 
         self.output.write("</doStatement>\n")
         return 0
 
@@ -417,6 +445,17 @@ class CompilationEngine:
     def CompaileExpressionList(self): 
         if not self.check():
             return
+        self.output.write("<expressionList>\n")
+        if getValue(self.input[self.idx]) != ")": # ) is end of explist
+            #expression
+            self.CompileExpression()
+            while getValue(self.input[self.idx]) == ",":
+                self.output.write(self.input[self.idx] + "\n") #,
+                self.idx += 1
+                #expression
+                self.CompileExpression()
+        self.output.write("</expressionList>\n")
+
         return 0
 
 if __name__ == '__main__':
