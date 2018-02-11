@@ -3,6 +3,7 @@ import os
 import sys
 import re
 
+#for tokenizer
 BLANK_CHARS = r'\s'
 INT = r'\d+'
 KEYWORDS = ["class","constructor","function","method","field","static","var",
@@ -10,6 +11,9 @@ KEYWORDS = ["class","constructor","function","method","field","static","var",
 "let","do","if","else","while","return"]
 SYMBOLS = "{}()[].,;+-*/&|<>=~"
 IDENTIFIER = []
+
+#for compilationEngine
+OP = ["+","-","*","/","&amp;","|","&lt;","&gt;","="]
 
 # print(SYMBOLS)
 # SEPARATORS = r'\s'
@@ -31,13 +35,29 @@ class JackTokenizer:
             lines = f.readlines()
 
         lines_without_comment = []
+        comment_flag = 0
         for l in lines:
+            # for // type comment
             if l.find("//") != -1:
                 comment = l.find("//")
                 l = l[:comment]
-            if l.find("/**") != -1:
-                comment = l.find("/**")
+
+            # for multi line comment
+            if l.find("/**") != -1 and l.find("*/") == -1:
+                comment_flag = 1
                 continue
+            elif comment_flag == 1:
+                if l.find("*") != -1:
+                    continue
+                if l.find("*/") != -1:
+                    comment_flag = 0
+                    continue
+
+            # for one line comment
+            if l.find("/**") != -1:
+                continue
+            
+            # for blank line
             if len(l) == 0 or l == '\n':
                 continue
             
@@ -243,6 +263,8 @@ class CompilationEngine:
     def CompileVarDec(self): 
         if not self.check():
             return
+
+        self.output.write("<varDec>\n")
         self.output.write(self.input[self.idx] + "\n") # var
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # type
@@ -258,7 +280,7 @@ class CompilationEngine:
 
         self.output.write(self.input[self.idx] + "\n") # ;
         self.idx += 1
-        
+        self.output.write("</varDec>\n")
         return 0
 
     def CompileStatements(self): 
@@ -412,7 +434,10 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # }
         self.idx += 1
 
+        #for else 
         if getValue(self.input[self.idx]) == "else":
+            self.output.write(self.input[self.idx] + "\n") # else
+            self.idx += 1
             self.output.write(self.input[self.idx] + "\n") # {
             self.idx += 1
 
@@ -430,6 +455,10 @@ class CompilationEngine:
             return
         self.output.write("<expression>\n")
         self.CompileTerm()
+        while getValue(self.input[self.idx]) in OP:
+            self.output.write(self.input[self.idx] + "\n") # OP
+            self.idx += 1
+            self.CompileTerm()
         self.output.write("</expression>\n")
         return 0
 
@@ -437,8 +466,58 @@ class CompilationEngine:
         if not self.check():
             return
         self.output.write("<term>\n")
-        self.output.write(self.input[self.idx] + "\n") # term
-        self.idx += 1
+
+        # (expression)
+        if getValue(self.input[self.idx]) in "(":
+            self.output.write(self.input[self.idx] + "\n") # (
+            self.idx += 1
+            #expression
+            self.CompileExpression()
+            self.output.write(self.input[self.idx] + "\n") # )
+            self.idx += 1
+        # unaryOP term
+        elif getValue(self.input[self.idx]) in "-~":
+            self.output.write(self.input[self.idx] + "\n") # unary OP
+            self.idx += 1
+            #term
+            self.CompileTerm()
+        # varname [ expression ]
+        elif getValue(self.input[self.idx + 1]) in "[":
+            self.output.write(self.input[self.idx] + "\n") # varname
+            self.idx += 1
+            self.output.write(self.input[self.idx] + "\n") # [
+            self.idx += 1
+            #expression
+            self.CompileExpression()
+            self.output.write(self.input[self.idx] + "\n") # ]
+            self.idx += 1
+        # subroutine call
+        elif getValue(self.input[self.idx + 1]) in "(.":
+            self.output.write(self.input[self.idx] + "\n") # class or subroutine name
+            self.idx += 1
+            if getValue(self.input[self.idx]) == "(":
+                self.output.write(self.input[self.idx] + "\n") # (
+                self.idx += 1
+                #expressionList
+                self.CompaileExpressionList()
+                self.output.write(self.input[self.idx] + "\n") # )
+                self.idx += 1
+            elif getValue(self.input[self.idx]) == ".":
+                self.output.write(self.input[self.idx] + "\n") # .
+                self.idx += 1
+                self.output.write(self.input[self.idx] + "\n") # subroutine name
+                self.idx += 1
+                self.output.write(self.input[self.idx] + "\n") # (
+                self.idx += 1
+                #expressionList
+                self.CompaileExpressionList()
+                self.output.write(self.input[self.idx] + "\n") # )
+                self.idx += 1
+        #for constant
+        else:
+            self.output.write(self.input[self.idx] + "\n") # constant
+            self.idx += 1
+
         self.output.write("</term>\n")
         return 0
     
@@ -479,6 +558,7 @@ if __name__ == '__main__':
 
     # for output_file in source:
     #    print("output:  " + output_file)
+    # print(source)
 
     for input_file in source:
         tokenizer = JackTokenizer(input_file)
@@ -506,21 +586,12 @@ if __name__ == '__main__':
         # print("\n".join(tokenizer_output)) #intermediate xml file
 
 
-        output_file = input_file[:-5] + ".xml"
-        ce = CompilationEngine(tokenizer_output,'cedev.xml')
-    
-
-
-        # while ce.idx < len(ce.input):
-            # print(ce.idx)
+        output_file = input_file[:-5] + "_dev.xml"
+        print("output:  " + output_file)
+        ce = CompilationEngine(tokenizer_output,output_file)
 
         ce.CompileClass()
             
-            # ce.idx += 1
-            
-
-
-
         ce.close()
         #     print(i + "yattaze")
         # print(compilation_engine.output)
