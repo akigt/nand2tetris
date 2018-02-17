@@ -2,6 +2,8 @@
 import os 
 import sys
 import re
+import SymbolTabel
+import VMWriter
 
 #for tokenizer
 BLANK_CHARS = r'\s'
@@ -26,6 +28,7 @@ def getValue(s):
     return re.sub(r"\s?<.+?>\s?","",s)
 
 # print(getValue("<aaa> yattaze </aaa>"))
+
 
 class JackTokenizer:
     def __init__(self, file):

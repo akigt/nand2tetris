@@ -1,0 +1,8 @@
+push local 1
+ADD
+label test
+goto test
+if-goto test
+call myfuncition 1
+return
+call myfunction 1
