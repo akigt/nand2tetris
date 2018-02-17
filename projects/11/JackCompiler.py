@@ -2,7 +2,7 @@
 import os 
 import sys
 import re
-import SymbolTabel
+import SymbolTable
 import VMWriter
 
 #for tokenizer
@@ -26,6 +26,10 @@ OP = ["+","-","*","/","&amp;","|","&lt;","&gt;","="]
     
 def getValue(s):
     return re.sub(r"\s?<.+?>\s?","",s)
+
+def getTag(s):
+    m = re.match(r"\s?<(.+?)>\s?",s)
+    return m.group(1)
 
 # print(getValue("<aaa> yattaze </aaa>"))
 
@@ -152,31 +156,46 @@ class JackTokenizer:
 class CompilationEngine:
     def __init__(self,input,output):
         self.input = input
-        self.output = open(output,'w')
+        self.output = open(output + ".xml",'w')
         self.idx = 0
-    
+        self.class_name = ""
+
+        # symbol tables
+        self.sub_t = SymbolTable.SymbolTable()
+        self.class_t = SymbolTable.SymbolTable()
+
+        # print(self.stable.table)
+
+        #vm code output
+        self.vm_output = VMWriter.VMWriter(output + ".vm")
+
     def close(self):
         if self.output:
             self.output.close()
             self.output = None
+        if self.vm_output:
+            self.vm_output.close()
+            self.vm_output = None
     
     def check(self):
         return self.idx < len(self.input)
     
     def CompileClass(self):
         self.output.write("<class>\n")
+
         self.output.write(self.input[self.idx] + "\n") # class 
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # classname 
+        self.class_name = getValue(self.input[self.idx])
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # symbol {
         self.idx += 1
 
         while getValue(self.input[self.idx]) in ["field","static"]:
-            self.CompileClassVarDec()
+            self.CompileClassVarDec() #class var dec
             # print(self.idx)
         while getValue(self.input[self.idx]) in ["constructor","function","method"]:
-            self.CompileSubroutine()
+            self.CompileSubroutine() #subroutines
 
         self.output.write(self.input[self.idx] + "\n") # symbol }
         self.output.write("</class>\n")
@@ -189,12 +208,20 @@ class CompilationEngine:
 
         self.output.write("<classVarDec>\n")
         self.output.write(self.input[self.idx] + "\n") # static or field
+        
+        _kind = getValue(self.input[self.idx]) # static or field
+
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # type
+        _type = getValue(self.input[self.idx]) # int string boolean or type
         self.idx += 1
         
         while getValue(self.input[self.idx]) != ";":
             self.output.write(self.input[self.idx] + "\n") # varname or ,
+            if getTag(self.input[self.idx]) != "symbol": # get varName and define symbol table
+                _name = getValue(self.input[self.idx])
+                self.class_t.define(_name,_type,_kind)
+
             self.idx += 1
 
         self.output.write(self.input[self.idx] + "\n") # ;
@@ -207,11 +234,17 @@ class CompilationEngine:
     def CompileSubroutine(self): 
         if not self.check():
             return
+        #initialize subroutine table 
+        self.sub_t.startSubroutine()
 
         self.output.write("<subroutineDec>\n")
         self.output.write(self.input[self.idx] + "\n") # constructor method function
+        type_of_subroutine = getValue(self.input[self.idx]) # constructor? of method?
+        if type_of_subroutine == "method": # assign arg0 this object
+            self.sub_t.define('this',self.class_name,'argument')
+
         self.idx += 1
-        self.output.write(self.input[self.idx] + "\n") # type
+        self.output.write(self.input[self.idx] + "\n") # type class name or something
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # subroutine name
         self.idx += 1
@@ -239,6 +272,9 @@ class CompilationEngine:
         self.idx += 1
         self.output.write("</subroutineDec>\n")
 
+
+        print(self.sub_t.table) # for debug
+
         return 0
     
     # for fiedeclaration
@@ -249,16 +285,25 @@ class CompilationEngine:
 
         if getValue(self.input[self.idx]) != ")":
             self.output.write(self.input[self.idx] + "\n") # type
+            _type = getValue(self.input[self.idx])
             self.idx += 1
             self.output.write(self.input[self.idx] + "\n") # varName
+            _name = getValue(self.input[self.idx])
             self.idx += 1
+            #set symbol table
+            self.sub_t.define(_name,_type,'argument')
             while getValue(self.input[self.idx]) == ",":
                 self.output.write(self.input[self.idx] + "\n") # ,
                 self.idx += 1
                 self.output.write(self.input[self.idx] + "\n") # type
+                _type = getValue(self.input[self.idx])
                 self.idx += 1
                 self.output.write(self.input[self.idx] + "\n") # varName
+                _name = getValue(self.input[self.idx])
                 self.idx += 1
+                #set symbol table
+                self.sub_t.define(_name,_type,'argument')
+                
 
         self.output.write("</parameterList>\n")
         return 0
@@ -271,15 +316,22 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # var
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # type
+        _type = getValue(self.input[self.idx])
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # varName
+        _name = getValue(self.input[self.idx])
         self.idx += 1
+        #set symbol table
+        self.sub_t.define(_name,_type,'local')
 
         while getValue(self.input[self.idx]) == ",":
             self.output.write(self.input[self.idx] + "\n") # ,
             self.idx += 1
             self.output.write(self.input[self.idx] + "\n") # varName
+            _name = getValue(self.input[self.idx])
             self.idx += 1
+            #set symbol table
+            self.sub_t.define(_name,_type,'argument')
 
         self.output.write(self.input[self.idx] + "\n") # ;
         self.idx += 1
@@ -518,7 +570,7 @@ class CompilationEngine:
                 self.idx += 1
         #for constant
         else:
-            self.output.write(self.input[self.idx] + "\n") # constant
+            self.output.write(self.input[self.idx] + "\n") # constant or variable
             self.idx += 1
 
         self.output.write("</term>\n")
@@ -589,13 +641,19 @@ if __name__ == '__main__':
         # print("\n".join(tokenizer_output)) #intermediate xml file
 
 
-        output_file = input_file[:-5] + ".xml"
-        print("output:  " + output_file)
+        xml_file = input_file[:-5]
+        print("output:  " + xml_file)
         # exit()
-        ce = CompilationEngine(tokenizer_output,output_file)
+        ce = CompilationEngine(tokenizer_output,xml_file)
 
         ce.CompileClass()
-            
+
+        print("<----symbol table ---->")
+        print(ce.class_t.table)
+        print("field varCount: ",end="")
+        print(ce.class_t.varCount('field'))
+        print(ce.sub_t.table)
+        print("</----symbol table ---->")
         ce.close()
         #     print(i + "yattaze")
         # print(compilation_engine.output)
