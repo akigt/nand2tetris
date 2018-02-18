@@ -5,7 +5,10 @@ pop pointer 0
 push constant 0
 push constant 0
 push constant 30
+call Square.new 3
+pop field 0
 push constant 0
+pop field 1
 push pointer 0
 return
 function SquareGame.dispose 0
@@ -15,6 +18,7 @@ push this 0
 call square.dispose 1
 push argument 0
 call Memory.deAlloc 1
+push constant 0
 return
 function SquareGame.moveSquare 0
 push argument 0
@@ -22,70 +26,152 @@ pop pointer 0
 push this 1
 push constant 1
 eq
+not
+if-goto Label.SquareGame0
 push this 0
 call square.moveUp 1
+goto Label.SquareGame1
+label Label.SquareGame0
+label Label.SquareGame1
 push this 1
 push constant 2
 eq
+not
+if-goto Label.SquareGame2
 push this 0
 call square.moveDown 1
+goto Label.SquareGame3
+label Label.SquareGame2
+label Label.SquareGame3
 push this 1
 push constant 3
 eq
+not
+if-goto Label.SquareGame4
 push this 0
 call square.moveLeft 1
+goto Label.SquareGame5
+label Label.SquareGame4
+label Label.SquareGame5
 push this 1
 push constant 4
 eq
+not
+if-goto Label.SquareGame6
 push this 0
 call square.moveRight 1
+goto Label.SquareGame7
+label Label.SquareGame6
+label Label.SquareGame7
 push constant 5
 call Sys.wait 1
+push constant 0
 return
 function SquareGame.run 2
 push argument 0
 pop pointer 0
 push constant 0
+pop local 1
+label Label.SquareGame8
 push local 1
 not
+not
+if-goto Label.SquareGame9
+label Label.SquareGame10
 push local 0
 push constant 0
 eq
+not
+if-goto Label.SquareGame11
+call Keyboard.keyPressed 0
+pop local 0
 call moveSquare 0
+goto Label.SquareGame10
+label Label.SquareGame11
 push local 0
 push constant 81
 eq
+not
+if-goto Label.SquareGame12
 push constant 1
 neg
+pop local 1
+goto Label.SquareGame13
+label Label.SquareGame12
+label Label.SquareGame13
 push local 0
 push constant 90
 eq
+not
+if-goto Label.SquareGame14
 push this 0
 call square.decSize 1
+goto Label.SquareGame15
+label Label.SquareGame14
+label Label.SquareGame15
 push local 0
 push constant 88
 eq
+not
+if-goto Label.SquareGame16
 push this 0
 call square.incSize 1
+goto Label.SquareGame17
+label Label.SquareGame16
+label Label.SquareGame17
 push local 0
 push constant 131
 eq
+not
+if-goto Label.SquareGame18
 push constant 1
+pop field 1
+goto Label.SquareGame19
+label Label.SquareGame18
+label Label.SquareGame19
 push local 0
 push constant 133
 eq
+not
+if-goto Label.SquareGame20
 push constant 2
+pop field 1
+goto Label.SquareGame21
+label Label.SquareGame20
+label Label.SquareGame21
 push local 0
 push constant 130
 eq
+not
+if-goto Label.SquareGame22
 push constant 3
+pop field 1
+goto Label.SquareGame23
+label Label.SquareGame22
+label Label.SquareGame23
 push local 0
 push constant 132
 eq
+not
+if-goto Label.SquareGame24
 push constant 4
+pop field 1
+goto Label.SquareGame25
+label Label.SquareGame24
+label Label.SquareGame25
+label Label.SquareGame26
 push local 0
 push constant 0
 eq
 not
+not
+if-goto Label.SquareGame27
+call Keyboard.keyPressed 0
+pop local 0
 call moveSquare 0
+goto Label.SquareGame26
+label Label.SquareGame27
+goto Label.SquareGame8
+label Label.SquareGame9
+push constant 0
 return

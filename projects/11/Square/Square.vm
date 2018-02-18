@@ -9,8 +9,11 @@ pop this 1
 push argument 2
 pop this 2
 push argument 0
+pop field 0
 push argument 1
+pop field 1
 push argument 2
+pop field 2
 call draw 0
 push pointer 0
 return
@@ -19,6 +22,7 @@ push argument 0
 pop pointer 0
 push argument 0
 call Memory.deAlloc 1
+push constant 0
 return
 function Square.draw 0
 push argument 0
@@ -35,6 +39,7 @@ push this 1
 push this 2
 add
 call Screen.drawRectangle 4
+push constant 0
 return
 function Square.erase 0
 push argument 0
@@ -50,6 +55,7 @@ push this 1
 push this 2
 add
 call Screen.drawRectangle 4
+push constant 0
 return
 function Square.incSize 0
 push argument 0
@@ -65,11 +71,18 @@ add
 push constant 510
 lt
 and
+not
+if-goto Label.Square0
 call erase 0
 push this 2
 push constant 2
 add
+pop field 2
 call draw 0
+goto Label.Square1
+label Label.Square0
+label Label.Square1
+push constant 0
 return
 function Square.decSize 0
 push argument 0
@@ -77,11 +90,18 @@ pop pointer 0
 push this 2
 push constant 2
 gt
+not
+if-goto Label.Square2
 call erase 0
 push this 2
 push constant 2
 sub
+pop field 2
 call draw 0
+goto Label.Square3
+label Label.Square2
+label Label.Square3
+push constant 0
 return
 function Square.moveUp 0
 push argument 0
@@ -89,6 +109,8 @@ pop pointer 0
 push this 1
 push constant 1
 gt
+not
+if-goto Label.Square4
 push constant 0
 call Screen.setColor 1
 push this 0
@@ -107,6 +129,7 @@ call Screen.drawRectangle 4
 push this 1
 push constant 2
 sub
+pop field 1
 push constant 1
 neg
 call Screen.setColor 1
@@ -119,6 +142,10 @@ push this 1
 push constant 1
 add
 call Screen.drawRectangle 4
+goto Label.Square5
+label Label.Square4
+label Label.Square5
+push constant 0
 return
 function Square.moveDown 0
 push argument 0
@@ -128,6 +155,8 @@ push this 2
 add
 push constant 254
 lt
+not
+if-goto Label.Square6
 push constant 0
 call Screen.setColor 1
 push this 0
@@ -142,6 +171,7 @@ call Screen.drawRectangle 4
 push this 1
 push constant 2
 add
+pop field 1
 push constant 1
 neg
 call Screen.setColor 1
@@ -158,6 +188,10 @@ push this 1
 push this 2
 add
 call Screen.drawRectangle 4
+goto Label.Square7
+label Label.Square6
+label Label.Square7
+push constant 0
 return
 function Square.moveLeft 0
 push argument 0
@@ -165,6 +199,8 @@ pop pointer 0
 push this 0
 push constant 1
 gt
+not
+if-goto Label.Square8
 push constant 0
 call Screen.setColor 1
 push this 0
@@ -183,6 +219,7 @@ call Screen.drawRectangle 4
 push this 0
 push constant 2
 sub
+pop field 0
 push constant 1
 neg
 call Screen.setColor 1
@@ -195,6 +232,10 @@ push this 1
 push this 2
 add
 call Screen.drawRectangle 4
+goto Label.Square9
+label Label.Square8
+label Label.Square9
+push constant 0
 return
 function Square.moveRight 0
 push argument 0
@@ -204,6 +245,8 @@ push this 2
 add
 push constant 510
 lt
+not
+if-goto Label.Square10
 push constant 0
 call Screen.setColor 1
 push this 0
@@ -218,6 +261,7 @@ call Screen.drawRectangle 4
 push this 0
 push constant 2
 add
+pop field 0
 push constant 1
 neg
 call Screen.setColor 1
@@ -234,4 +278,8 @@ push this 1
 push this 2
 add
 call Screen.drawRectangle 4
+goto Label.Square11
+label Label.Square10
+label Label.Square11
+push constant 0
 return

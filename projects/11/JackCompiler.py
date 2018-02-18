@@ -160,6 +160,7 @@ class CompilationEngine:
         self.idx = 0
         self.class_name = ""
         self.arg_count = 0
+        self.label_count = 0
 
         # symbol tables
         self.sub_t = SymbolTable.SymbolTable()
@@ -475,10 +476,10 @@ class CompilationEngine:
 
         self.output.write("</letStatement>\n")
 
-        #write vm code
+        #write vm code for let
         if _varname in self.sub_t.table:
             self.vm_output.writePop(self.sub_t.KindOf(_varname),self.sub_t.IndexOf(_varname))
-        elif _varsubroutine_name in self.class_t.table:
+        elif _varname in self.class_t.table:
             self.vm_output.writePop(self.class_t.KindOf(_varname),self.class_t.IndexOf(_varname))
 
         return 0
@@ -491,10 +492,21 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # while
         self.idx += 1
 
+        #write vm code for loop label
+        _loop_label = "Label.{0}{1}".format(self.class_name,self.label_count)
+        self.vm_output.writeLabel(_loop_label) # label for while loop
+        self.label_count += 1 #count up
+
         self.output.write(self.input[self.idx] + "\n") # (
         self.idx += 1
         #expression
         self.CompileExpression()
+        #write vm code
+        self.vm_output.writeArithmetic("unary~") #not
+        _out_label = "Label.{0}{1}".format(self.class_name,self.label_count)
+        self.vm_output.writeIf(_out_label) # go outside of while loop
+        self.label_count += 1 #count up
+
         self.output.write(self.input[self.idx] + "\n") # )
         self.idx += 1
 
@@ -505,7 +517,14 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # }
         self.idx += 1
 
+        #write vm code for go back loop
+        self.vm_output.writeGoto(_loop_label) # go back while loop
+
         self.output.write("</whileStatement>\n")
+
+        #write vm code
+        self.vm_output.writeLabel(_out_label)
+
         return 0
 
     def CompileReturn(self): 
@@ -519,6 +538,9 @@ class CompilationEngine:
         if getValue(self.input[self.idx]) != ";": #expression? if not ";"
             #expression
             self.CompileExpression()
+        else:
+            #write vm code for void method
+            self.vm_output.writePush("constant",0)
 
         self.output.write(self.input[self.idx] + "\n") # ;
         self.idx += 1
@@ -526,6 +548,7 @@ class CompilationEngine:
         self.output.write("</returnStatement>\n")
 
         #write vm code
+        
         self.vm_output.writeReturn()
         return 0
 
@@ -545,6 +568,13 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # )
         self.idx += 1
 
+        #write vm code
+        self.vm_output.writeArithmetic("unary~") #not
+        _else_label = "Label.{0}{1}".format(self.class_name,self.label_count)
+        self.vm_output.writeIf(_else_label) # if goto
+        self.label_count += 1 #count up
+
+        # for if statement when true
         self.output.write(self.input[self.idx] + "\n") # {
         self.idx += 1
         #statement
@@ -552,7 +582,12 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # }
         self.idx += 1
 
+        _if_label = "Label.{0}{1}".format(self.class_name,self.label_count)
+        self.vm_output.writeGoto(_if_label) # goto
+        self.label_count += 1 #count up
+
         #for else 
+        self.vm_output.writeLabel(_else_label) # label for else
         if getValue(self.input[self.idx]) == "else":
             self.output.write(self.input[self.idx] + "\n") # else
             self.idx += 1
@@ -566,6 +601,11 @@ class CompilationEngine:
             self.idx += 1
 
         self.output.write("</ifStatement>\n")
+
+        #write vm code for if label
+        self.vm_output.writeLabel(_if_label) # label for if
+        
+        
         return 0
 
     def CompileExpression(self): 
@@ -662,9 +702,17 @@ class CompilationEngine:
             self.output.write(self.input[self.idx] + "\n") # constant or variable
             #write vm code
             _value = getValue(self.input[self.idx])
-            if re.match(r'[0-9]+',_value):
-                # print("match")
+            _tag = getTag(self.input[self.idx])
+            print(_tag)
+            if _tag == "integerConstant":
                 self.vm_output.writePush("constant",_value)
+            elif _tag == "stringConstant":
+                self.vm_output.writePush("constant",len(_value))
+                self.vm_output.writeCall("String.new",1)
+                for c in _value:
+                    self.vm_output.writePush("constant",ord(c))
+                    self.vm_output.writeCall("String.appendChar",2)
+                
             elif _value == "false":
                 self.vm_output.writePush("constant",0)
             elif _value == "true":
