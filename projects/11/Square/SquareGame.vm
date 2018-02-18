@@ -16,8 +16,10 @@ push argument 0
 pop pointer 0
 push this 0
 call square.dispose 1
+pop temp 0
 push argument 0
 call Memory.deAlloc 1
+pop temp 0
 push constant 0
 return
 function SquareGame.moveSquare 0
@@ -30,6 +32,7 @@ not
 if-goto Label.SquareGame0
 push this 0
 call square.moveUp 1
+pop temp 0
 goto Label.SquareGame1
 label Label.SquareGame0
 label Label.SquareGame1
@@ -40,6 +43,7 @@ not
 if-goto Label.SquareGame2
 push this 0
 call square.moveDown 1
+pop temp 0
 goto Label.SquareGame3
 label Label.SquareGame2
 label Label.SquareGame3
@@ -50,6 +54,7 @@ not
 if-goto Label.SquareGame4
 push this 0
 call square.moveLeft 1
+pop temp 0
 goto Label.SquareGame5
 label Label.SquareGame4
 label Label.SquareGame5
@@ -60,11 +65,13 @@ not
 if-goto Label.SquareGame6
 push this 0
 call square.moveRight 1
+pop temp 0
 goto Label.SquareGame7
 label Label.SquareGame6
 label Label.SquareGame7
 push constant 5
 call Sys.wait 1
+pop temp 0
 push constant 0
 return
 function SquareGame.run 2
@@ -86,6 +93,7 @@ if-goto Label.SquareGame11
 call Keyboard.keyPressed 0
 pop local 0
 call moveSquare 0
+pop temp 0
 goto Label.SquareGame10
 label Label.SquareGame11
 push local 0
@@ -106,6 +114,7 @@ not
 if-goto Label.SquareGame14
 push this 0
 call square.decSize 1
+pop temp 0
 goto Label.SquareGame15
 label Label.SquareGame14
 label Label.SquareGame15
@@ -116,6 +125,7 @@ not
 if-goto Label.SquareGame16
 push this 0
 call square.incSize 1
+pop temp 0
 goto Label.SquareGame17
 label Label.SquareGame16
 label Label.SquareGame17
@@ -169,6 +179,7 @@ if-goto Label.SquareGame27
 call Keyboard.keyPressed 0
 pop local 0
 call moveSquare 0
+pop temp 0
 goto Label.SquareGame26
 label Label.SquareGame27
 goto Label.SquareGame8

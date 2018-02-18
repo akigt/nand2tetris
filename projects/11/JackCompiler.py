@@ -294,19 +294,7 @@ class CompilationEngine:
         self.output.write("</subroutineDec>\n")
 
 
-        print(self.sub_t.table) # for debug
-        #write vm code for subroutines
-        # self.vm_output.writeFunction(self.class_name + "." + subroutine_name,self.sub_t.varCount('local'))
-        # if type_of_subroutine == "constructor": # get instance vars memory
-        #     self.vm_output.writePush("constant",self.class_t.varCount('field'))
-        #     self.vm_output.writeCall("Memory.alloc",1)
-        #     self.vm_output.writePop("pointer",0)
-        #     arg_count = self.sub_t.varCount('argument')
-        #     for i in range(arg_count):
-        #         self.vm_output.writePush("argument",i)
-        #         self.vm_output.writePop("this",i)
-            # self.vm_output.writePush("pointer",0)
-        # self.vm_output.writeReturn()
+        # print(self.sub_t.table) # for debug
         return 0
     
     # for fiedeclaration
@@ -444,7 +432,10 @@ class CompilationEngine:
         # write vm code
         #call subroutine
         self.vm_output.writeCall(_subroutine_name,self.arg_count)
-
+       
+        # # for void method, get rid of unnecessary value
+        self.vm_output.writePop("temp",0) 
+        # print(_subroutine_name)
         return 0
 
     def CompileLet(self): 
@@ -457,12 +448,24 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # varname
         _varname = getValue(self.input[self.idx])
         self.idx += 1
+
+        arr_flag = False # isArray assingments?
         if getValue(self.input[self.idx]) == "[":
             self.output.write(self.input[self.idx] + "\n") # [
             self.idx += 1
 
+            #write vm code for arr
+            if _varname in self.sub_t.table:
+                self.vm_output.writePush(self.sub_t.KindOf(_varname),self.sub_t.IndexOf(_varname))
+            elif _varname in self.class_t.table:
+                self.vm_output.writePush(self.class_t.KindOf(_varname),self.class_t.IndexOf(_varname))
+            arr_flag = True
+
             #expression
             self.CompileExpression()
+
+            #write vm code
+            self.vm_output.writeArithmetic("+")
     
             self.output.write(self.input[self.idx] + "\n") # ]
             self.idx += 1
@@ -471,16 +474,25 @@ class CompilationEngine:
         self.idx += 1
         #expression
         self.CompileExpression()
+
         self.output.write(self.input[self.idx] + "\n") # ;
         self.idx += 1
 
         self.output.write("</letStatement>\n")
 
-        #write vm code for let
-        if _varname in self.sub_t.table:
-            self.vm_output.writePop(self.sub_t.KindOf(_varname),self.sub_t.IndexOf(_varname))
-        elif _varname in self.class_t.table:
-            self.vm_output.writePop(self.class_t.KindOf(_varname),self.class_t.IndexOf(_varname))
+
+        #if arr assignment write vm code
+        if arr_flag:
+            self.vm_output.writePop("temp",0) # reserve arr2
+            self.vm_output.writePop("pointer",1) #change that to arr1
+            self.vm_output.writePush("temp",0) # get arr2value
+            self.vm_output.writePop("that",0)
+        else:
+            #write vm code for let
+            if _varname in self.sub_t.table:
+                self.vm_output.writePop(self.sub_t.KindOf(_varname),self.sub_t.IndexOf(_varname))
+            elif _varname in self.class_t.table:
+                self.vm_output.writePop(self.class_t.KindOf(_varname),self.class_t.IndexOf(_varname))
 
         return 0
 
@@ -548,8 +560,8 @@ class CompilationEngine:
         self.output.write("</returnStatement>\n")
 
         #write vm code
-        
         self.vm_output.writeReturn()
+
         return 0
 
     def CompileIf(self): 
@@ -648,14 +660,29 @@ class CompilationEngine:
 
             #write vm code
             self.vm_output.writeArithmetic("unary" + _OP)
-        # varname [ expression ]
+        # varname [ expression ] for array like object
         elif getValue(self.input[self.idx + 1]) in "[":
             self.output.write(self.input[self.idx] + "\n") # varname
+            _varname = getValue(self.input[self.idx])
+            #write vm code
+            if _varname in self.sub_t.table:
+                self.vm_output.writePush(self.sub_t.KindOf(_varname),self.sub_t.IndexOf(_varname))
+            elif _varname in self.class_t.table:
+                # segment = self.class_t.KindOf(_value)
+                # segment = "this" if segment == 'field' else segment
+                self.vm_output.writePush(self.class_t.KindOf(_varname),self.class_t.IndexOf(_varname))
             self.idx += 1
             self.output.write(self.input[self.idx] + "\n") # [
             self.idx += 1
             #expression
             self.CompileExpression()
+
+            #write vm code
+            self.vm_output.writeArithmetic("+")
+            self.vm_output.writePop("pointer",1) # set pointer to arr
+            self.vm_output.writePush("that",0) # get arr value
+
+
             self.output.write(self.input[self.idx] + "\n") # ]
             self.idx += 1
         # subroutine call
@@ -703,7 +730,7 @@ class CompilationEngine:
             #write vm code
             _value = getValue(self.input[self.idx])
             _tag = getTag(self.input[self.idx])
-            print(_tag)
+            # print(_tag)
             if _tag == "integerConstant":
                 self.vm_output.writePush("constant",_value)
             elif _tag == "stringConstant":
@@ -712,8 +739,7 @@ class CompilationEngine:
                 for c in _value:
                     self.vm_output.writePush("constant",ord(c))
                     self.vm_output.writeCall("String.appendChar",2)
-                
-            elif _value == "false":
+            elif (_value == "false") or (_value == "null"):
                 self.vm_output.writePush("constant",0)
             elif _value == "true":
                 self.vm_output.writePush("constant",1)
@@ -812,12 +838,12 @@ if __name__ == '__main__':
 
         ce.CompileClass()
 
-        print("<----symbol table ---->")
-        print(ce.class_t.table)
-        print("field varCount: ",end="")
-        print(ce.class_t.varCount('field'))
-        print(ce.sub_t.table)
-        print("</----symbol table ---->")
+        # print("<----symbol table ---->")
+        # print(ce.class_t.table)
+        # print("field varCount: ",end="")
+        # print(ce.class_t.varCount('field'))
+        # print(ce.sub_t.table)
+        # print("</----symbol table ---->")
         ce.close()
         #     print(i + "yattaze")
         # print(compilation_engine.output)
