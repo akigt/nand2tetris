@@ -14,6 +14,8 @@ class VMWriter:
         self.output.write("push {0} {1}".format(segment,index) + "\n")
 
     def writePop(self,segment,index):
+        if segment == "field":
+            segment = "this"
         self.output.write("pop {0} {1}".format(segment,index) + "\n")
     
     def writeArithmetic(self,command):

@@ -276,10 +276,12 @@ class CompilationEngine:
             self.vm_output.writePush("constant",self.class_t.varCount('field'))
             self.vm_output.writeCall("Memory.alloc",1)
             self.vm_output.writePop("pointer",0)
-            nArgs = self.sub_t.varCount('argument')
-            for i in range(nArgs):
-                self.vm_output.writePush("argument",i)
-                self.vm_output.writePop("this",i)
+            # nArgs = self.sub_t.varCount('argument')
+            # for i in range(nArgs):
+            #     self.vm_output.writePush("argument",i)
+            #     # print("hello")
+            #     self.vm_output.writePop("this",i)
+            #     # self.vm_output.writePop("testman",i)
         elif self.type_of_subroutine == "method":
             self.vm_output.writePush("argument",0)
             self.vm_output.writePop("pointer",0)
@@ -399,6 +401,12 @@ class CompilationEngine:
         if getValue(self.input[self.idx]) == "(":
             self.output.write(self.input[self.idx] + "\n") # (
             self.idx += 1
+
+            #write vm code
+            self.vm_output.writePush("pointer",0)
+            _subroutine_name = self.class_name + "." + _subroutine_name
+            self.arg_count += 1
+
             #expressionList
             self.CompaileExpressionList()
             self.output.write(self.input[self.idx] + "\n") # )
@@ -409,9 +417,13 @@ class CompilationEngine:
             if _subroutine_name in self.sub_t.table:
                 self.arg_count += 1 #for method, arg0 = this
                 self.vm_output.writePush(self.sub_t.KindOf(_subroutine_name),self.sub_t.IndexOf(_subroutine_name))
+                _subroutine_name = self.sub_t.TypeOf(_subroutine_name)
+                # print(_subroutine_name)
             elif _subroutine_name in self.class_t.table:
                 self.arg_count += 1 #for method, arg0 = this
                 self.vm_output.writePush(self.class_t.KindOf(_subroutine_name),self.class_t.IndexOf(_subroutine_name))
+                _subroutine_name = self.class_t.TypeOf(_subroutine_name)
+                # print(_subroutine_name)
 
             self.output.write(self.input[self.idx] + "\n") # .
             self.idx += 1
@@ -431,6 +443,7 @@ class CompilationEngine:
 
         # write vm code
         #call subroutine
+        # _subroutine_name = _subroutine_name[0].upper() + _subroutine_name[1:]
         self.vm_output.writeCall(_subroutine_name,self.arg_count)
        
         # # for void method, get rid of unnecessary value
@@ -706,9 +719,11 @@ class CompilationEngine:
                 if _subroutine_name in self.sub_t.table:
                     self.arg_count += 1 #for method, arg0 = this
                     self.vm_output.writePush(self.sub_t.KindOf(_subroutine_name),self.sub_t.IndexOf(_subroutine_name))
+                    _subroutine_name = self.sub_t.TypeOf(_subroutine_name)
                 elif _subroutine_name in self.class_t.table:
                     self.arg_count += 1 #for method, arg0 = this
                     self.vm_output.writePush(self.class_t.KindOf(_subroutine_name),self.class_t.IndexOf(_subroutine_name))
+                    _subroutine_name = self.class_t.TypeOf(_subroutine_name)
 
                 self.output.write(self.input[self.idx] + "\n") # .
                 self.idx += 1
