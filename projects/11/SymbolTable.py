@@ -1,10 +1,7 @@
 class SymbolTable:
     def __init__(self):
         self.table = {}
-        # self.static_idx = 0
-        # self.field_idx = 0
-        # self.arg_idx = 0
-        # self.var_idx = 0
+        # kind = static,field,argument,local
         self.idxs = {'static':0,'field':0,'argument':0,'local':0}
     
     def startSubroutine(self):

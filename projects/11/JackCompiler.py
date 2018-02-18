@@ -279,6 +279,10 @@ class CompilationEngine:
             for i in range(nArgs):
                 self.vm_output.writePush("argument",i)
                 self.vm_output.writePop("this",i)
+        elif self.type_of_subroutine == "method":
+            self.vm_output.writePush("argument",0)
+            self.vm_output.writePop("pointer",0)
+
         
         # statements
         self.CompileStatements()
@@ -358,7 +362,7 @@ class CompilationEngine:
             _name = getValue(self.input[self.idx])
             self.idx += 1
             #set symbol table
-            self.sub_t.define(_name,_type,'argument')
+            self.sub_t.define(_name,_type,'local')
 
         self.output.write(self.input[self.idx] + "\n") # ;
         self.idx += 1
@@ -412,6 +416,7 @@ class CompilationEngine:
             self.idx += 1
         elif getValue(self.input[self.idx]) == ".":
             # if this is method 
+            # write vm code
             if _subroutine_name in self.sub_t.table:
                 self.arg_count += 1 #for method, arg0 = this
                 self.vm_output.writePush(self.sub_t.KindOf(_subroutine_name),self.sub_t.IndexOf(_subroutine_name))
@@ -449,6 +454,7 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # let
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # varname
+        _varname = getValue(self.input[self.idx])
         self.idx += 1
         if getValue(self.input[self.idx]) == "[":
             self.output.write(self.input[self.idx] + "\n") # [
@@ -468,6 +474,13 @@ class CompilationEngine:
         self.idx += 1
 
         self.output.write("</letStatement>\n")
+
+        #write vm code
+        if _varname in self.sub_t.table:
+            self.vm_output.writePop(self.sub_t.KindOf(_varname),self.sub_t.IndexOf(_varname))
+        elif _varsubroutine_name in self.class_t.table:
+            self.vm_output.writePop(self.class_t.KindOf(_varname),self.class_t.IndexOf(_varname))
+
         return 0
 
     def CompileWhile(self): 
@@ -607,7 +620,11 @@ class CompilationEngine:
             self.idx += 1
         # subroutine call
         elif getValue(self.input[self.idx + 1]) in "(.":
+            #initialize arg_count
+            self.arg_count = 0
+
             self.output.write(self.input[self.idx] + "\n") # class or subroutine name
+            _subroutine_name = getValue(self.input[self.idx])
             self.idx += 1
             if getValue(self.input[self.idx]) == "(":
                 self.output.write(self.input[self.idx] + "\n") # (
@@ -617,9 +634,19 @@ class CompilationEngine:
                 self.output.write(self.input[self.idx] + "\n") # )
                 self.idx += 1
             elif getValue(self.input[self.idx]) == ".":
+                # if this is method 
+                # write vm code
+                if _subroutine_name in self.sub_t.table:
+                    self.arg_count += 1 #for method, arg0 = this
+                    self.vm_output.writePush(self.sub_t.KindOf(_subroutine_name),self.sub_t.IndexOf(_subroutine_name))
+                elif _subroutine_name in self.class_t.table:
+                    self.arg_count += 1 #for method, arg0 = this
+                    self.vm_output.writePush(self.class_t.KindOf(_subroutine_name),self.class_t.IndexOf(_subroutine_name))
+
                 self.output.write(self.input[self.idx] + "\n") # .
                 self.idx += 1
                 self.output.write(self.input[self.idx] + "\n") # subroutine name
+                _subroutine_name += "." +  getValue(self.input[self.idx])
                 self.idx += 1
                 self.output.write(self.input[self.idx] + "\n") # (
                 self.idx += 1
@@ -627,6 +654,9 @@ class CompilationEngine:
                 self.CompaileExpressionList()
                 self.output.write(self.input[self.idx] + "\n") # )
                 self.idx += 1
+
+                #write vm code
+                self.vm_output.writeCall(_subroutine_name,self.arg_count)
         #for wconstant
         else:
             self.output.write(self.input[self.idx] + "\n") # constant or variable
