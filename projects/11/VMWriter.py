@@ -9,13 +9,43 @@ class VMWriter:
             self.output = None
     
     def writePush(self,segment,index):
+        if segment == "field":
+            segment = "this"
         self.output.write("push {0} {1}".format(segment,index) + "\n")
 
     def writePop(self,segment,index):
         self.output.write("pop {0} {1}".format(segment,index) + "\n")
     
     def writeArithmetic(self,command):
-        self.output.write(command + "\n")
+        arithmetic = command
+        #binary op
+        if command == "+":
+            arithmetic = "add"
+        if command == "-":
+            arithmetic = "sub"
+        if command == "*":
+            arithmetic = "call Math.multiply 2"
+        if command == "/":
+            arithmetic = "call Math.divide 2"
+        if command == "&amp;":
+            arithmetic = "and"
+        if command == "|":
+            arithmetic = "or"
+        if command == "&lt;":
+            arithmetic = "lt"
+        if command == "&gt;":
+            arithmetic = "gt"
+        if command == "=":
+            arithmetic = "eq"
+
+        # "&amp;","|","&lt;","&gt;
+
+        #unary op
+        if command == "unary-":
+            arithmetic = "neg"
+        if command == "unary~":
+            arithmetic = "not"
+        self.output.write(arithmetic + "\n")
     
     def writeLabel(self,label):
         self.output.write("label {0}".format(label) + "\n")
@@ -28,7 +58,7 @@ class VMWriter:
         self.output.write("call {0} {1}".format(name,nArgs) + "\n")
 
     def writeFunction(self,name,nLocals):
-        self.output.write("call {0} {1}".format(name,nLocals) + "\n")
+        self.output.write("function {0} {1}".format(name,nLocals) + "\n")
 
     def writeReturn(self):
         self.output.write("return" + "\n")

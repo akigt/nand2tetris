@@ -54,10 +54,10 @@ class JackTokenizer:
                 comment_flag = 1
                 continue
             elif comment_flag == 1:
-                if l.find("*") != -1:
-                    continue
-                if l.find("*/") != -1:
+                if l.find("*/") != -1: #end of comment
                     comment_flag = 0
+                    continue
+                if l.find("*") != -1: 
                     continue
 
             # for one line comment
@@ -159,6 +159,7 @@ class CompilationEngine:
         self.output = open(output + ".xml",'w')
         self.idx = 0
         self.class_name = ""
+        self.arg_count = 0
 
         # symbol tables
         self.sub_t = SymbolTable.SymbolTable()
@@ -239,14 +240,17 @@ class CompilationEngine:
 
         self.output.write("<subroutineDec>\n")
         self.output.write(self.input[self.idx] + "\n") # constructor method function
-        type_of_subroutine = getValue(self.input[self.idx]) # constructor? of method?
-        if type_of_subroutine == "method": # assign arg0 this object
-            self.sub_t.define('this',self.class_name,'argument')
-
+        self.type_of_subroutine = getValue(self.input[self.idx]) # constructor? of method?
+        if self.type_of_subroutine == "method": # assign arg0 this object
+            self.sub_t.define('this',self.class_name,'argument') 
+        # elif type_of_subroutine == "constructor":
+        #     self.sub_t.define('this',self.class_name,'pointer')
+         
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # type class name or something
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # subroutine name
+        self.subroutine_name = getValue(self.input[self.idx])
         self.idx += 1
         self.output.write(self.input[self.idx] + "\n") # (
         self.idx += 1
@@ -264,6 +268,18 @@ class CompilationEngine:
         #vardec
         while getValue(self.input[self.idx]) == "var":
             self.CompileVarDec()
+
+        #write vm code
+        self.vm_output.writeFunction(self.class_name + "." + self.subroutine_name,self.sub_t.varCount('local'))
+        if self.type_of_subroutine == "constructor": # get instance vars memory
+            self.vm_output.writePush("constant",self.class_t.varCount('field'))
+            self.vm_output.writeCall("Memory.alloc",1)
+            self.vm_output.writePop("pointer",0)
+            nArgs = self.sub_t.varCount('argument')
+            for i in range(nArgs):
+                self.vm_output.writePush("argument",i)
+                self.vm_output.writePop("this",i)
+        
         # statements
         self.CompileStatements()
 
@@ -274,7 +290,18 @@ class CompilationEngine:
 
 
         print(self.sub_t.table) # for debug
-
+        #write vm code for subroutines
+        # self.vm_output.writeFunction(self.class_name + "." + subroutine_name,self.sub_t.varCount('local'))
+        # if type_of_subroutine == "constructor": # get instance vars memory
+        #     self.vm_output.writePush("constant",self.class_t.varCount('field'))
+        #     self.vm_output.writeCall("Memory.alloc",1)
+        #     self.vm_output.writePop("pointer",0)
+        #     arg_count = self.sub_t.varCount('argument')
+        #     for i in range(arg_count):
+        #         self.vm_output.writePush("argument",i)
+        #         self.vm_output.writePop("this",i)
+            # self.vm_output.writePush("pointer",0)
+        # self.vm_output.writeReturn()
         return 0
     
     # for fiedeclaration
@@ -336,6 +363,8 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # ;
         self.idx += 1
         self.output.write("</varDec>\n")
+
+
         return 0
 
     def CompileStatements(self): 
@@ -361,6 +390,9 @@ class CompilationEngine:
     def CompileDo(self): 
         if not self.check():
             return
+        #count nArgs. every time when find do statement, reset arg_count to 0
+        self.arg_count = 0
+        
         self.output.write("<doStatement>\n")
 
         self.output.write(self.input[self.idx] + "\n") # do
@@ -368,6 +400,7 @@ class CompilationEngine:
 
         #subroutine call
         self.output.write(self.input[self.idx] + "\n") # subroutine name or classname
+        _subroutine_name = getValue(self.input[self.idx])
         self.idx += 1 
 
         if getValue(self.input[self.idx]) == "(":
@@ -378,9 +411,18 @@ class CompilationEngine:
             self.output.write(self.input[self.idx] + "\n") # )
             self.idx += 1
         elif getValue(self.input[self.idx]) == ".":
+            # if this is method 
+            if _subroutine_name in self.sub_t.table:
+                self.arg_count += 1 #for method, arg0 = this
+                self.vm_output.writePush(self.sub_t.KindOf(_subroutine_name),self.sub_t.IndexOf(_subroutine_name))
+            elif _subroutine_name in self.class_t.table:
+                self.arg_count += 1 #for method, arg0 = this
+                self.vm_output.writePush(self.class_t.KindOf(_subroutine_name),self.class_t.IndexOf(_subroutine_name))
+
             self.output.write(self.input[self.idx] + "\n") # .
             self.idx += 1
             self.output.write(self.input[self.idx] + "\n") # subroutine name
+            _subroutine_name += "." +  getValue(self.input[self.idx])
             self.idx += 1
             self.output.write(self.input[self.idx] + "\n") # (
             self.idx += 1
@@ -392,6 +434,11 @@ class CompilationEngine:
         self.output.write(self.input[self.idx] + "\n") # ;
         self.idx += 1 
         self.output.write("</doStatement>\n")
+
+        # write vm code
+        #call subroutine
+        self.vm_output.writeCall(_subroutine_name,self.arg_count)
+
         return 0
 
     def CompileLet(self): 
@@ -464,6 +511,9 @@ class CompilationEngine:
         self.idx += 1
 
         self.output.write("</returnStatement>\n")
+
+        #write vm code
+        self.vm_output.writeReturn()
         return 0
 
     def CompileIf(self): 
@@ -512,9 +562,14 @@ class CompilationEngine:
         self.CompileTerm()
         while getValue(self.input[self.idx]) in OP:
             self.output.write(self.input[self.idx] + "\n") # OP
+            _OP = getValue(self.input[self.idx])
             self.idx += 1
+            #term
             self.CompileTerm()
+            #write vm code
+            self.vm_output.writeArithmetic(_OP)
         self.output.write("</expression>\n")
+
         return 0
 
     def CompileTerm(self): 
@@ -533,9 +588,13 @@ class CompilationEngine:
         # unaryOP term
         elif getValue(self.input[self.idx]) in "-~":
             self.output.write(self.input[self.idx] + "\n") # unary OP
+            _OP = getValue(self.input[self.idx])
             self.idx += 1
             #term
             self.CompileTerm()
+
+            #write vm code
+            self.vm_output.writeArithmetic("unary" + _OP)
         # varname [ expression ]
         elif getValue(self.input[self.idx + 1]) in "[":
             self.output.write(self.input[self.idx] + "\n") # varname
@@ -568,9 +627,32 @@ class CompilationEngine:
                 self.CompaileExpressionList()
                 self.output.write(self.input[self.idx] + "\n") # )
                 self.idx += 1
-        #for constant
+        #for wconstant
         else:
             self.output.write(self.input[self.idx] + "\n") # constant or variable
+            #write vm code
+            _value = getValue(self.input[self.idx])
+            if re.match(r'[0-9]+',_value):
+                # print("match")
+                self.vm_output.writePush("constant",_value)
+            elif _value == "false":
+                self.vm_output.writePush("constant",0)
+            elif _value == "true":
+                self.vm_output.writePush("constant",1)
+                self.vm_output.writeArithmetic("unary-")
+            else:
+                #search var and push it
+                if _value in self.sub_t.table:
+                    self.vm_output.writePush(self.sub_t.KindOf(_value),self.sub_t.IndexOf(_value))
+                elif _value in self.class_t.table:
+                    # segment = self.class_t.KindOf(_value)
+                    # segment = "this" if segment == 'field' else segment
+                    self.vm_output.writePush(self.class_t.KindOf(_value),self.class_t.IndexOf(_value))
+                elif _value == "this": #for constructor
+                    self.vm_output.writePush("pointer",0)
+                else:
+                    print(_value)
+
             self.idx += 1
 
         self.output.write("</term>\n")
@@ -583,11 +665,15 @@ class CompilationEngine:
         if getValue(self.input[self.idx]) != ")": # ) is end of explist
             #expression
             self.CompileExpression()
+            #count up args
+            self.arg_count += 1
             while getValue(self.input[self.idx]) == ",":
                 self.output.write(self.input[self.idx] + "\n") #,
                 self.idx += 1
                 #expression
                 self.CompileExpression()
+                #count up args
+                self.arg_count += 1
         self.output.write("</expressionList>\n")
 
         return 0

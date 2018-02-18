@@ -28,13 +28,13 @@ class SymbolTable:
         return count
     
     def KindOf(self,name):
-        return st.table[name]['kind']
+        return self.table[name]['kind']
 
     def TypeOf(self,name):
-        return st.table[name]['type']
+        return self.table[name]['type']
 
     def IndexOf(self,name):
-        return st.table[name]['index']
+        return self.table[name]['index']
 
 
 
